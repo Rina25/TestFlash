@@ -11,6 +11,10 @@ TEMPLATE = app
 
 
 SOURCES += main.cpp\
-        mainwindow.cpp
+        mainwindow.cpp \
+    cdevicemanager.cpp \
+    cdevice.cpp
 
-HEADERS  += mainwindow.h
+HEADERS  += mainwindow.h \
+    cdevicemanager.h \
+    cdevice.h
