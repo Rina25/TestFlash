@@ -21,11 +21,12 @@ void MainWindow::show()
     QGroupBox* lDeviceGroup = new QGroupBox(QString::fromLocal8Bit("Устройство"),lWindow);
     lGLayout->addWidget(lDeviceGroup,0,0);
     QComboBox* lDeviceComboBox = new QComboBox(lDeviceGroup);
+    QObject::connect(lDeviceComboBox, SIGNAL(activated(int)), this, SLOT(updateDiskNameList()));
     QVBoxLayout* lDeviceLayout = new QVBoxLayout(lDeviceGroup);
     lDeviceGroup->setLayout(lDeviceLayout);
     lDeviceLayout->addWidget(lDeviceComboBox);
-    QLabel* lDeviceLabel = new QLabel(QString::fromLocal8Bit(getDeviceInfoString().c_str()),lDeviceGroup);
-    lDeviceLayout->addWidget(lDeviceLabel);
+    aDeviceLabel = new QLabel("",lDeviceGroup);
+    lDeviceLayout->addWidget(aDeviceLabel);
 
     QGroupBox* lMemoryGroup = new QGroupBox(QString::fromLocal8Bit("Характеристики"),lWindow);
     lGLayout->addWidget(lMemoryGroup,0,1);
@@ -37,17 +38,20 @@ void MainWindow::show()
     QGroupBox* lTestParamGroup = new QGroupBox(QString::fromLocal8Bit("Параметры тестирования"),lWindow);
     lGLayout->addWidget(lTestParamGroup,1,0,1,2);
 
-    CDeviceManager* lDevManager = new CDeviceManager();
-    devList lDevList = lDevManager->getDeviceList();
-    for(std::vector<CDevice*>::iterator it=lDevList->begin();it<lDevList->end();it++)
-        lDeviceComboBox->addItem(QString::fromStdString((*it)->getDiskName()));
+    CDeviceManager* lDevManager = CDeviceManager::getInstance();
+    pNameList nameList = lDevManager->getDeviceNameList();
+    for(std::vector<std::string>::iterator it=nameList->begin();it<nameList->end();it++)
+        lDeviceComboBox->addItem(QString::fromStdString(*it));
+
+    updateDeviceProperty(0);
 }
 
-std::string MainWindow::getDeviceInfoString(std::string iModel, std::string iVendor, std::string iSerial)
+std::string MainWindow::getDeviceInfoString(std::string iModel, std::string iVendor, std::string iSerial, std::string iFileSystem)
 {
-    return "\nМодель: "+iModel
-           +"\nПроизводитель: "+iVendor
-           +"\nСерийный номер: "+iSerial;
+    return "\nМодель:                      "+iModel
+           +"\nПроизводитель:           "+iVendor
+           +"\nСерийный номер:       "+iSerial
+            +"\nФайловая система:    "+iFileSystem;
 }
 
 std::string MainWindow::getMemoryInfoString(ull iDevSize, ull iTotalSpace, ull iFreeSpace, ull iCountLBA, int iSectorSize)
@@ -69,4 +73,27 @@ std::string MainWindow::getMemoryInfoString(ull iDevSize, ull iTotalSpace, ull i
     if(iSectorSize)
         lMemoryInfoString<<iSectorSize;
     return lMemoryInfoString.str();
+}
+
+void MainWindow::updateDiskNameList()
+{
+    QMessageBox* testBox = new QMessageBox();
+    testBox->exec();
+}
+
+void MainWindow::updateDeviceProperty(int iIndex)
+{
+    CDeviceManager* devManager = CDeviceManager::getInstance();
+    try
+    {
+        aDeviceLabel->setText(QString::fromLocal8Bit(getDeviceInfoString(devManager->getDeviceModel(iIndex),
+                                                                         devManager->getDeviceVendor(iIndex),
+                                                                         devManager->getDeviceSerial(iIndex),
+                                                                         devManager->getDeviceFileSystem(iIndex)).c_str()));
+    }
+    catch(...)
+    {
+        aDeviceLabel->setText(QString::fromLocal8Bit(getDeviceInfoString().c_str()));
+    }
+
 }

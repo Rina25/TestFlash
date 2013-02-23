@@ -9,6 +9,7 @@
 #include <QLabel>
 #include <string>
 #include <sstream>
+#include <QMessageBox>
 #include "cdevicemanager.h"
 
 typedef unsigned long long ull;
@@ -22,11 +23,16 @@ public:
     ~MainWindow();
 
 private:
-    std::string getDeviceInfoString(std::string iModel="", std::string iVendor="", std::string iSerial="");
+    std::string getDeviceInfoString(std::string iModel="", std::string iVendor="", std::string iSerial="", std::string iFileSystem="");
     std::string getMemoryInfoString(ull iDevSize=0, ull iTotalSpace=0, ull iFreeSpace=0, ull iCountLBA=0, int iSectorSize=0);
 
 public slots:
     void show();
+private slots:
+    void updateDiskNameList();
+    void updateDeviceProperty(int iIndex);
+private:
+    QLabel* aDeviceLabel;
 };
 
 #endif // MAINWINDOW_H
