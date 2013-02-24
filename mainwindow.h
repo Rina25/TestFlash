@@ -10,9 +10,13 @@
 #include <string>
 #include <sstream>
 #include <QMessageBox>
+#include <QCheckBox>
+#include <QRadioButton>
+#include <QSpinBox>
+#include <QPushButton>
 #include "cdevicemanager.h"
 
-typedef unsigned long long ull;
+
 
 class MainWindow : public QMainWindow
 {
@@ -24,8 +28,8 @@ public:
 
 private:
     std::string getDeviceInfoString(std::string iModel="", std::string iVendor="", std::string iSerial="", std::string iFileSystem="");
-    std::string getMemoryInfoString(ull iDevSize=0, ull iTotalSpace=0, ull iFreeSpace=0, ull iCountLBA=0, int iSectorSize=0);
-
+    std::string getMemoryInfoString(long long iDevSize=0, long long iAvailableSpace=0, long long iFreeSpace=0, long long iCountLBA=0, int iSectorSize=0);
+    std::string convertBytes(long long iBytes);
 public slots:
     void show();
 private slots:
@@ -33,6 +37,15 @@ private slots:
     void updateDeviceProperty(int iIndex);
 private:
     QLabel* aDeviceLabel;
+    QLabel* aMemoryLabel;
+    QCheckBox* aReadCheck;
+    QCheckBox* aWriteCheck;
+    QRadioButton* aLinearRadio;
+    QRadioButton* aButterflyRadio;
+    QRadioButton* aRandomRadio;
+    QSpinBox* aBlockSizeEdit;
+    QSpinBox* aStartEdit;
+    QSpinBox* aEndEdit;
 };
 
 #endif // MAINWINDOW_H
