@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QtGui/QMainWindow>
+#include <QCloseEvent>
 #include <QGridLayout>
 #include <QVBoxLayout>
 #include <QGroupBox>
@@ -32,10 +33,17 @@ private:
     std::string convertBytes(long long iBytes);
 public slots:
     void show();
+    void unlockWindow();
+protected:
+    void closeEvent(QCloseEvent *iCloseEvent);
 private slots:
     void updateDiskNameList();
     void updateDeviceProperty(int iIndex);
+    void testButtonClick();
 private:
+    bool aWindowLocked;
+    QWidget* aWindow;
+    QComboBox* aDeviceComboBox;
     QLabel* aDeviceLabel;
     QLabel* aMemoryLabel;
     QCheckBox* aReadCheck;

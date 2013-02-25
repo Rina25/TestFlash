@@ -1,8 +1,9 @@
 #include "mainwindow.h"
 
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent)
+    : QMainWindow(parent, Qt::Dialog | Qt::MSWindowsFixedSizeDialogHint)
 {
+    aWindowLocked = false;
 }
 
 MainWindow::~MainWindow()
@@ -13,24 +14,24 @@ MainWindow::~MainWindow()
 void MainWindow::show()
 {
     QWidget::show();
-    QWidget* lWindow = new QWidget(this);
-    QGridLayout* lGLayout = new QGridLayout(lWindow);
-    lWindow->setLayout(lGLayout);
-    setCentralWidget(lWindow);
+    aWindow = new QWidget(this);
+    QGridLayout* lGLayout = new QGridLayout(aWindow);
+    aWindow->setLayout(lGLayout);
+    setCentralWidget(aWindow);
 
     //Информация об устройстве
-    QGroupBox* lDeviceGroup = new QGroupBox(QString::fromLocal8Bit("Устройство"),lWindow);
+    QGroupBox* lDeviceGroup = new QGroupBox(QString::fromLocal8Bit("Устройство"),aWindow);
     lGLayout->addWidget(lDeviceGroup,0,0);
-    QComboBox* lDeviceComboBox = new QComboBox(lDeviceGroup);
-    QObject::connect(lDeviceComboBox, SIGNAL(activated(int)), this, SLOT(updateDeviceProperty(int)));
+    aDeviceComboBox = new QComboBox(lDeviceGroup);
+    QObject::connect(aDeviceComboBox, SIGNAL(activated(int)), this, SLOT(updateDeviceProperty(int)));
     QVBoxLayout* lDeviceLayout = new QVBoxLayout(lDeviceGroup);
     lDeviceGroup->setLayout(lDeviceLayout);
-    lDeviceLayout->addWidget(lDeviceComboBox);
+    lDeviceLayout->addWidget(aDeviceComboBox);
     aDeviceLabel = new QLabel("",lDeviceGroup);
     lDeviceLayout->addWidget(aDeviceLabel);
 
     //Информация о памяти
-    QGroupBox* lMemoryGroup = new QGroupBox(QString::fromLocal8Bit("Характеристики"),lWindow);
+    QGroupBox* lMemoryGroup = new QGroupBox(QString::fromLocal8Bit("Характеристики"),aWindow);
     lGLayout->addWidget(lMemoryGroup,0,1);
     QVBoxLayout* lMemoryLayout = new QVBoxLayout(lMemoryGroup);
     lMemoryGroup->setLayout(lMemoryLayout);
@@ -38,11 +39,12 @@ void MainWindow::show()
     lMemoryLayout->addWidget(aMemoryLabel);
 
     //Параметры тестирования
-    QGroupBox* lTestParamGroup = new QGroupBox(QString::fromLocal8Bit("Параметры тестирования"),lWindow);
+    QGroupBox* lTestParamGroup = new QGroupBox(QString::fromLocal8Bit("Параметры тестирования"),aWindow);
     lGLayout->addWidget(lTestParamGroup,1,0,1,2);
     QGridLayout* lTestParamLayout = new QGridLayout(lTestParamGroup);
     lTestParamGroup->setLayout(lTestParamLayout);
     aReadCheck = new QCheckBox(QString::fromLocal8Bit("Чтение"),lTestParamGroup);
+    aReadCheck->setChecked(true);
     lTestParamLayout->addWidget(aReadCheck, 0, 0);
     aWriteCheck = new QCheckBox(QString::fromLocal8Bit("Запись"),lTestParamGroup);
     lTestParamLayout->addWidget(aWriteCheck, 1, 0);
@@ -73,14 +75,31 @@ void MainWindow::show()
     lTestParamLayout->setColumnMinimumWidth(2,20);
     QPushButton* testButton = new QPushButton(QString::fromLocal8Bit("Начать тестирование"),lTestParamGroup);
     lTestParamLayout->addWidget(testButton, 3, 1, 1, 3);
+    QObject::connect(testButton, SIGNAL(clicked()), this, SLOT(testButtonClick()));
 
     CDeviceManager* lDevManager = CDeviceManager::getInstance();
+    QObject::connect(lDevManager,SIGNAL(testFinished()),this,SLOT(unlockWindow()));
     pNameList nameList = lDevManager->getDeviceNameList();
     for(std::vector<std::string>::iterator it=nameList->begin();it<nameList->end();it++)
-        lDeviceComboBox->addItem(QString::fromStdString(*it));
+        aDeviceComboBox->addItem(QString::fromStdString(*it));
 
     updateDeviceProperty(0);
+    aWindow->adjustSize();
 
+}
+
+void MainWindow::unlockWindow()
+{
+    aWindow->setEnabled(true);
+    aWindowLocked = false;
+}
+
+void MainWindow::closeEvent(QCloseEvent *iCloseEvent)
+{
+    if(aWindowLocked)
+        iCloseEvent->ignore();
+    else
+        iCloseEvent->accept();
 }
 
 std::string MainWindow::getDeviceInfoString(std::string iModel, std::string iVendor, std::string iSerial, std::string iFileSystem)
@@ -141,8 +160,8 @@ void MainWindow::updateDeviceProperty(int iIndex)
     CDeviceManager* devManager = CDeviceManager::getInstance();
     try
     {
-        if(!devManager->updateDeviceInfo(iIndex))
-            throw;
+       if(!devManager->updateDeviceInfo(iIndex))
+           throw "device not found";
         aDeviceLabel->setText(QString::fromLocal8Bit(getDeviceInfoString(devManager->getDeviceModel(iIndex),
                                                                          devManager->getDeviceVendor(iIndex),
                                                                          devManager->getDeviceSerial(iIndex),
@@ -161,4 +180,29 @@ void MainWindow::updateDeviceProperty(int iIndex)
         aDeviceLabel->setText(QString::fromLocal8Bit(getDeviceInfoString().c_str()));
         aMemoryLabel->setText(QString::fromLocal8Bit(getMemoryInfoString().c_str()));
     }
+}
+
+void MainWindow::testButtonClick()
+{
+    aWindow->setEnabled(false);
+    aWindowLocked = true;
+    int iMode = 0;
+    if (aReadCheck->isChecked())
+        iMode+=1;
+    if (aWriteCheck->isChecked())
+        iMode+=2;
+    int iMethod = 0;
+    if(aLinearRadio->isChecked())
+        iMethod =1;
+    if(aButterflyRadio->isChecked())
+        iMethod =2;
+    if(aRandomRadio->isChecked())
+        iMethod =3;
+    (CDeviceManager::getInstance())->runTest(aDeviceComboBox->currentIndex(),
+                            iMode,
+                            iMethod,
+                            aBlockSizeEdit->value(),
+                            aStartEdit->value(),
+                            aEndEdit->value());
+
 }
