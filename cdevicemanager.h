@@ -2,8 +2,10 @@
 #define CDEVICEMANAGER_H
 
 #include <vector>
+#include <QThread>
 #include "cdevice.h"
 #include "ctestwindow.h"
+#include "ctest.h"
 
 typedef std::vector<CDevice*>* pDevList;
 typedef std::vector<std::string>* pNameList;
@@ -38,10 +40,13 @@ private:
     pDevList getDeviceList();
 private slots:
     void testWindowClosed();
+    void testEnded();
 private:
     static CDeviceManager* aInstance;
     pDevList aDeviceList;
     CTestWindow* aTestWindow;
+    QThread* aTestThread;
+    CTest* aTest;
 };
 
 #endif // CDEVICEMANAGER_H

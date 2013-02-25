@@ -7,4 +7,5 @@ CTest::CTest()
 void CTest::run()
 {
 
+    emit testEnded();
 }

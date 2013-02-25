@@ -1,6 +1,7 @@
 #ifndef CTEST_H
 #define CTEST_H
 #include <QObject>
+#include <QMessageBox>
 
 class CTest : public QObject
 {

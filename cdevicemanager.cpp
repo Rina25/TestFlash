@@ -148,6 +148,11 @@ void CDeviceManager::testWindowClosed()
     emit testFinished();
 }
 
+void CDeviceManager::testEnded()
+{
+
+}
+
 
 int CDeviceManager::runTest(int iIndex, int iMode, int iMethod, int iBlockSize, long long iStartLBA, long long iEndLBA)
 {
@@ -170,14 +175,27 @@ int CDeviceManager::runTest(int iIndex, int iMode, int iMethod, int iBlockSize, 
 
     if(!status)
     {
+        //Ошибка, выход
         QMessageBox* testBox = new QMessageBox(QMessageBox::Critical,"Error",QString::fromLocal8Bit("Невозможно получить доступ к устройству"));
         testBox->exec();
         emit testFinished();
         return 0;
     }
+    //Окно тестирования
     aTestWindow = new CTestWindow(iMode,(iEndLBA-iStartLBA+1)/iBlockSize+1);
     QObject::connect(aTestWindow, SIGNAL(windowClosed()), this, SLOT(testWindowClosed()));
     aTestWindow->show();
+
+    //Поток для тестирования
+    aTestThread = new QThread();
+    aTest = new CTest();
+    aTest->moveToThread(aTestThread);
+    connect(aTestThread, SIGNAL(started()), aTest, SLOT(run()));
+    connect(aTest, SIGNAL(testEnded()), aTestThread, SLOT(quit()));
+    connect(aTest, SIGNAL(testEnded()), aTest, SLOT(deleteLater()));
+    connect(aTestThread, SIGNAL(finished()), aTestThread, SLOT(deleteLater()));
+
+    aTestThread->start();
 }
 
 

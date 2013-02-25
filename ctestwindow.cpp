@@ -60,14 +60,20 @@ void CTestWindow::closeEvent(QCloseEvent *iCloseEvent)
 
 QTableWidget* CTestWindow::createMap(QWidget *iParent)
 {
-    int rowCount = 50;
-    int columnCount = 30;
-    QTableWidget* returnedTable = new QTableWidget(iParent);
+    int rowCount = 20;
+    int columnCount = 25;
+    if(aCountBlocks > (columnCount*rowCount))
+            rowCount = (!aCountBlocks%columnCount)? aCountBlocks/columnCount : aCountBlocks/columnCount+1;
+    QTableWidget* returnedTable = new QTableWidget(rowCount, columnCount, iParent);
+    for(int i=0; i<rowCount; i++)
+        returnedTable->setRowHeight(i, 15);
+    for(int i=0; i<columnCount; i++)
+        returnedTable->setColumnWidth(i, 15);
     returnedTable->horizontalHeader()->setVisible(false);
     returnedTable->verticalHeader()->setVisible(false);
     returnedTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
     returnedTable->setSelectionMode(QAbstractItemView::SingleSelection);
     returnedTable->setSelectionMode(QAbstractItemView::NoSelection);
-    returnedTable->setFixedSize(400,300);
+    returnedTable->setFixedSize(400,200);
     return returnedTable;
 }
