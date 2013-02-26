@@ -107,6 +107,14 @@ void CTestWindow::addBlock(int iMode, int iBlockNumber, int iReadSpeed, int iWri
 
 }
 
+void CTestWindow::viewError(QString iMessage)
+{
+    QMessageBox* testBox = new QMessageBox(QMessageBox::Critical,
+                                           "Error",
+                                           QString::fromLocal8Bit((iMessage.toStdString()).c_str()));
+    testBox->exec();
+}
+
 void CTestWindow::closeEvent(QCloseEvent *iCloseEvent)
 {
     emit windowClosed();
@@ -114,7 +122,7 @@ void CTestWindow::closeEvent(QCloseEvent *iCloseEvent)
 
 QTableWidget* CTestWindow::createMap(QWidget *iParent)
 {
-    int rowCount = 20;
+    int rowCount = 13;
     int columnCount = 25;
     if(aCountBlocks > (columnCount*rowCount))
             rowCount = (!aCountBlocks%columnCount)? aCountBlocks/columnCount : aCountBlocks/columnCount+1;

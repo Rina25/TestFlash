@@ -12,6 +12,7 @@ public:
     CDevice(std::string iDiskName);
     int updateDeviceInfo();
     std::string getDiskName();
+    std::string getDeviceName();
     std::string getLabel();
     std::string getModel();
     std::string getVendor();

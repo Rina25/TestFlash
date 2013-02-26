@@ -7,6 +7,7 @@
 #include <QTabWidget>
 #include <QHeaderView>
 #include <QTableWidget>
+#include <QMessageBox>
 #include <map>
 
 class CTestWindow: public QWidget
@@ -23,6 +24,7 @@ protected:
     void closeEvent(QCloseEvent *iCloseEvent);
 private slots:
     void addBlock(int iMode, int iBlockNumber, int iReadSpeed, int iWriteSpeed);
+    void viewError(QString iMessage);
 private:
     QTableWidget* createMap(QWidget* iParent = 0);
 private:

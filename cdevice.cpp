@@ -22,6 +22,11 @@ CDevice::CDevice(std::string iDiskName)
 
 std::string CDevice::getDiskName()
 {
+    return aDiskName;
+}
+
+std::string CDevice::getDeviceName()
+{
     return aDiskName +"   ("+aLabel+")";
 }
 

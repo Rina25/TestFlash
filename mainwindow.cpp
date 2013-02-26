@@ -60,7 +60,7 @@ void MainWindow::show()
     aBlockSizeEdit = new QSpinBox(lTestParamGroup);
     aBlockSizeEdit->setMaximum(4096);
     aBlockSizeEdit->setMinimum(1);
-    aBlockSizeEdit->setValue(512);
+    aBlockSizeEdit->setValue(1024);
     lTestParamLayout->addWidget(aBlockSizeEdit,0,4);
     QLabel* startLabel = new QLabel(QString::fromLocal8Bit("Начальный адрес LBA:"),lTestParamGroup);
     lTestParamLayout->addWidget(startLabel, 1, 3);

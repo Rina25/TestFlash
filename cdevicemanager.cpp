@@ -23,7 +23,7 @@ pNameList CDeviceManager::getDeviceNameList()
     getDeviceList();
     pNameList nameList = new std::vector<std::string>();
     for(std::vector<CDevice*>::iterator it=aDeviceList->begin();it<aDeviceList->end();it++)
-        nameList->push_back((*it)->getDiskName());
+        nameList->push_back((*it)->getDeviceName());
     return nameList;
 }
 
@@ -194,7 +194,7 @@ int CDeviceManager::runTest(int iIndex, int iMode, int iMethod, int iBlockSize, 
     connect(aTest, SIGNAL(testEnded()), aTest, SLOT(deleteLater()));
     connect(aTestThread, SIGNAL(finished()), aTestThread, SLOT(deleteLater()));
     connect(aTest, SIGNAL(blockIsReady(int,int,int,int)), aTestWindow, SLOT(addBlock(int,int,int,int)));
-
+    connect(aTest, SIGNAL(error(QString)), aTestWindow, SLOT(viewError(QString)));
 
     aTestThread->start();
 }
