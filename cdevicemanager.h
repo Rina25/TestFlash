@@ -3,7 +3,6 @@
 
 #include <vector>
 #include <QThread>
-#include "cdevice.h"
 #include "ctestwindow.h"
 #include "ctest.h"
 

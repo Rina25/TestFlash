@@ -153,7 +153,6 @@ void CDeviceManager::testEnded()
 
 }
 
-
 int CDeviceManager::runTest(int iIndex, int iMode, int iMethod, int iBlockSize, long long iStartLBA, long long iEndLBA)
 {
     //Проверка параметров
@@ -188,12 +187,14 @@ int CDeviceManager::runTest(int iIndex, int iMode, int iMethod, int iBlockSize, 
 
     //Поток для тестирования
     aTestThread = new QThread();
-    aTest = new CTest();
+    aTest = new CTest(aDeviceList->at(iIndex), iMode, iMethod, iBlockSize, iStartLBA, iEndLBA);
     aTest->moveToThread(aTestThread);
     connect(aTestThread, SIGNAL(started()), aTest, SLOT(run()));
     connect(aTest, SIGNAL(testEnded()), aTestThread, SLOT(quit()));
     connect(aTest, SIGNAL(testEnded()), aTest, SLOT(deleteLater()));
     connect(aTestThread, SIGNAL(finished()), aTestThread, SLOT(deleteLater()));
+    connect(aTest, SIGNAL(blockIsReady(int,int,int,int)), aTestWindow, SLOT(addBlock(int,int,int,int)));
+
 
     aTestThread->start();
 }

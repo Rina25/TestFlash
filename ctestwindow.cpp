@@ -4,11 +4,21 @@ CTestWindow::CTestWindow(int iMode, int iCountBlocks, QWidget *iParent):QWidget(
 {
     aMode = iMode;
     aCountBlocks = iCountBlocks;
+    aReadTable = 0;
+    aWriteTable = 0;
+    aColorMap[-1] = QColor("#000000");
+    aColorMap[5] = QColor("#CCFFCC");
+    aColorMap[10] = QColor("#99CCCC");
+    aColorMap[20] = QColor("#FFFF99");
+    aColorMap[50] = QColor("#FFCC99");
+    aColorMap[200] = QColor("#6699CC");
+    aColorMap[500] = QColor("#996699");
+    aColorMap[1000] = QColor("#CC0000");
 }
 
 void CTestWindow::show()
 {
-    QWidget::show();
+
     QGridLayout* mainLayout = new QGridLayout(this);
     setLayout(mainLayout);
 
@@ -37,8 +47,8 @@ void CTestWindow::show()
         tabWidget->addTab(readMap,QString::fromLocal8Bit("Чтение"));
         QGridLayout* readLayout = new QGridLayout(readMap);
         readMap->setLayout(readLayout);
-        QTableWidget* readTable = createMap(this);
-        readLayout->addWidget(readTable,0, 0, 8, 1);
+        aReadTable = createMap(this);
+        readLayout->addWidget(aReadTable,0, 0, 8, 1);
     }
     if(aMode == 2 ||aMode == 3)
     {
@@ -46,11 +56,55 @@ void CTestWindow::show()
         tabWidget->addTab(writeMap,QString::fromLocal8Bit("Запись"));
         QGridLayout* writeLayout = new QGridLayout(writeMap);
         writeMap->setLayout(writeLayout);
-        QTableWidget* writeTable = createMap(this);
-        writeLayout->addWidget(writeTable,0, 0, 8, 1);
+        aWriteTable = createMap(this);
+        writeLayout->addWidget(aWriteTable,0, 0, 8, 1);
     }
 
     adjustSize();
+    QWidget::show();
+}
+
+void CTestWindow::addBlock(int iMode, int iBlockNumber, int iReadSpeed, int iWriteSpeed)
+{
+    int row;
+    int column;
+    std::map<int, QColor>::iterator it;
+    if((iMode == 1 || iMode == 3) && (aReadTable))
+    {
+        row = iBlockNumber / aReadTable->columnCount();
+        column = iBlockNumber - row*aReadTable->columnCount();
+        QTableWidgetItem* tableItem = new QTableWidgetItem("");
+        it = aColorMap.begin();
+        if(iReadSpeed == it->first)
+            tableItem->setBackground(it->second);
+        else
+            for(it++; it!=aColorMap.end();it++)
+            {
+               tableItem->setBackground(it->second);
+                if(iReadSpeed < it->first)
+                    break;
+            }
+
+        aReadTable->setItem(row, column, tableItem);
+    }
+    if((iMode == 2 || iMode == 3) && (aWriteTable))
+    {
+        row = iBlockNumber / aWriteTable->columnCount();
+        column = iBlockNumber - row*aWriteTable->columnCount();
+        QTableWidgetItem* tableItem = new QTableWidgetItem("");
+        it = aColorMap.begin();
+        if(iWriteSpeed == it->first)
+            tableItem->setBackground(it->second);
+        else
+            for(it++; it!=aColorMap.end();it++)
+            {
+               tableItem->setBackground(it->second);
+                if(iWriteSpeed < it->first)
+                    break;
+            }
+        aWriteTable->setItem(row, column, tableItem);
+    }
+
 }
 
 void CTestWindow::closeEvent(QCloseEvent *iCloseEvent)
