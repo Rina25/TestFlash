@@ -53,14 +53,14 @@ void MainWindow::show()
     lTestParamLayout->addWidget(aLinearRadio, 0, 1);
     aButterflyRadio = new QRadioButton(QString::fromLocal8Bit("Адресация методом 'Butterfly'"),lTestParamGroup);
     lTestParamLayout->addWidget(aButterflyRadio, 1, 1);
-    aRandomRadio = new QRadioButton(QString::fromLocal8Bit("Адресация методом 'Random'"),lTestParamGroup);
-    lTestParamLayout->addWidget(aRandomRadio, 2, 1);
+    //aRandomRadio = new QRadioButton(QString::fromLocal8Bit("Адресация методом 'Random'"),lTestParamGroup);
+    //lTestParamLayout->addWidget(aRandomRadio, 2, 1);
     QLabel* blockSizeLabel = new QLabel(QString::fromLocal8Bit("Размер блока:"),lTestParamGroup);
     lTestParamLayout->addWidget(blockSizeLabel, 0, 3);
     aBlockSizeEdit = new QSpinBox(lTestParamGroup);
     aBlockSizeEdit->setMaximum(4096);
     aBlockSizeEdit->setMinimum(1);
-    aBlockSizeEdit->setValue(1024);
+    aBlockSizeEdit->setValue(512);
     lTestParamLayout->addWidget(aBlockSizeEdit,0,4);
     QLabel* startLabel = new QLabel(QString::fromLocal8Bit("Начальный адрес LBA:"),lTestParamGroup);
     lTestParamLayout->addWidget(startLabel, 1, 3);
@@ -74,7 +74,7 @@ void MainWindow::show()
     lTestParamLayout->addWidget(aEndEdit,2,4);
     lTestParamLayout->setColumnMinimumWidth(2,20);
     QPushButton* testButton = new QPushButton(QString::fromLocal8Bit("Начать тестирование"),lTestParamGroup);
-    lTestParamLayout->addWidget(testButton, 3, 1, 1, 3);
+    lTestParamLayout->addWidget(testButton, 2, 0, 1, 2);
     QObject::connect(testButton, SIGNAL(clicked()), this, SLOT(testButtonClick()));
 
     CDeviceManager* lDevManager = CDeviceManager::getInstance();
@@ -172,8 +172,8 @@ void MainWindow::updateDeviceProperty(int iIndex)
                                                                          devManager->getDeviceCountLBA(iIndex),
                                                                          devManager->getDeviceSectorSize(iIndex)).c_str()));
         aStartEdit->setMaximum(devManager->getDeviceCountLBA(iIndex)-1);
-        aEndEdit->setMaximum(devManager->getDeviceCountLBA(iIndex));
-        aEndEdit->setValue(devManager->getDeviceCountLBA(iIndex));
+        aEndEdit->setMaximum(devManager->getDeviceCountLBA(iIndex)-1);
+        aEndEdit->setValue(devManager->getDeviceCountLBA(iIndex)-1);
     }
     catch(...)
     {

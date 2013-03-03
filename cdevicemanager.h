@@ -39,13 +39,17 @@ private:
     pDevList getDeviceList();
 private slots:
     void testWindowClosed();
-    void testEnded();
+    void setPause();
+    void setRun();
+    void setStop();
 private:
     static CDeviceManager* aInstance;
     pDevList aDeviceList;
     CTestWindow* aTestWindow;
     QThread* aTestThread;
     CTest* aTest;
+    QMutex* aPauseMutex;
+    QMutex* aStopMutex;
 };
 
 #endif // CDEVICEMANAGER_H

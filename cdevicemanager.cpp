@@ -145,12 +145,28 @@ pDevList CDeviceManager::getDeviceList()
 void CDeviceManager::testWindowClosed()
 {
     delete aTestWindow;
+    aPauseMutex->unlock();
+    aStopMutex->tryLock();
+   //delete aPauseMutex;
+   // delete aStopMutex;
     emit testFinished();
 }
 
-void CDeviceManager::testEnded()
-{
 
+
+void CDeviceManager::setPause()
+{
+    aPauseMutex->lock();
+}
+
+void CDeviceManager::setRun()
+{
+    aPauseMutex->unlock();
+}
+
+void CDeviceManager::setStop()
+{
+    aStopMutex->lock();
 }
 
 int CDeviceManager::runTest(int iIndex, int iMode, int iMethod, int iBlockSize, long long iStartLBA, long long iEndLBA)
@@ -181,21 +197,27 @@ int CDeviceManager::runTest(int iIndex, int iMode, int iMethod, int iBlockSize, 
         return 0;
     }
     //Окно тестирования
-    aTestWindow = new CTestWindow(iMode,(iEndLBA-iStartLBA+1)/iBlockSize+1);
+    aTestWindow = new CTestWindow(iMode,iStartLBA, iEndLBA, iBlockSize);
     QObject::connect(aTestWindow, SIGNAL(windowClosed()), this, SLOT(testWindowClosed()));
-    aTestWindow->show();
+    QObject::connect(aTestWindow, SIGNAL(pause()), this, SLOT(setPause()));
+    QObject::connect(aTestWindow, SIGNAL(run()), this, SLOT(setRun()));
+    QObject::connect(aTestWindow, SIGNAL(stop()), this, SLOT(setStop()));
 
     //Поток для тестирования
+    aPauseMutex = new QMutex();
+    aStopMutex = new QMutex();
     aTestThread = new QThread();
-    aTest = new CTest(aDeviceList->at(iIndex), iMode, iMethod, iBlockSize, iStartLBA, iEndLBA);
+    aTest = new CTest(aDeviceList->at(iIndex), iMode, iMethod, iBlockSize, iStartLBA, iEndLBA, aPauseMutex, aStopMutex);
     aTest->moveToThread(aTestThread);
     connect(aTestThread, SIGNAL(started()), aTest, SLOT(run()));
     connect(aTest, SIGNAL(testEnded()), aTestThread, SLOT(quit()));
     connect(aTest, SIGNAL(testEnded()), aTest, SLOT(deleteLater()));
     connect(aTestThread, SIGNAL(finished()), aTestThread, SLOT(deleteLater()));
     connect(aTest, SIGNAL(blockIsReady(int,int,int,int)), aTestWindow, SLOT(addBlock(int,int,int,int)));
+    connect(aTest, SIGNAL(testEnded()), aTestWindow, SLOT(testEnded()));
     connect(aTest, SIGNAL(error(QString)), aTestWindow, SLOT(viewError(QString)));
 
+    aTestWindow->show();
     aTestThread->start();
 }
 
