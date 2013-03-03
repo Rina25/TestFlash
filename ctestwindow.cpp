@@ -9,6 +9,7 @@ CTestWindow::CTestWindow(int iMode, long long iStartLBA, long long iEndLBA, int 
     aBlockSize = iBlockSize;
     aReadTable = 0;
     aWriteTable = 0;
+    aCorrectnessWriteTable = 0;
     aCountReadyBlock = 0;
     aColorMap[-1] = QColor("#000000");
     aColorMap[1999] = QColor("#CC0000");
@@ -62,6 +63,7 @@ void CTestWindow::show()
         aReadTable = createMap(this);
         readLayout->addWidget(aReadTable,0, 0, 11, 1);
         setLegend(readLayout, 0, 1, this);
+        connect(aReadTable, SIGNAL(cellClicked(int,int)), this, SLOT(cellClick(int,int)));
     }
     if(aMode == 2 ||aMode == 3)
     {
@@ -71,16 +73,29 @@ void CTestWindow::show()
         writeMap->setLayout(writeLayout);
         aWriteTable = createMap(this);
         writeLayout->addWidget(aWriteTable,0, 0, 11, 1);
+        setLegend(writeLayout, 0, 1, this);
+        connect(aWriteTable, SIGNAL(cellClicked(int,int)), this, SLOT(cellClick(int,int)));
+    }
+    if(aMode == 3)
+    {
+        QWidget* correctnessWriteMap = new QWidget(this);
+        tabWidget->addTab(correctnessWriteMap,QString::fromLocal8Bit("Проверка записи"));
+        QGridLayout* correctnessWriteLayout = new QGridLayout(correctnessWriteMap);
+        correctnessWriteMap->setLayout(correctnessWriteLayout);
+        aCorrectnessWriteTable = createMap(this);
+        correctnessWriteLayout->addWidget(aCorrectnessWriteTable,0, 0, 11, 1);
+        connect(aCorrectnessWriteTable, SIGNAL(cellClicked(int,int)), this, SLOT(cellClick(int,int)));
     }
     aStartLBALabel = new QLabel(this);
-    connect(aReadTable, SIGNAL(cellClicked(int,int)), this, SLOT(cellClick(int,int)));
+
+
     mainLayout->addWidget(aStartLBALabel, 3, 0, 1, 3);
 
     adjustSize();
     QWidget::show();
 }
 
-void CTestWindow::addBlock(int iMode, int iBlockNumber, int iReadSpeed, int iWriteSpeed)
+void CTestWindow::addBlock(int iMode, int iBlockNumber, int iReadSpeed, int iWriteSpeed, bool iCorrectnessWrite)
 {
     int row;
     int column;
@@ -115,13 +130,26 @@ void CTestWindow::addBlock(int iMode, int iBlockNumber, int iReadSpeed, int iWri
         if(iWriteSpeed == it->first)
             tableItem->setBackground(it->second);
         else
-            for(it++; it!=aColorMap.end();it++)
+        {
+            it=aColorMap.end();
+            for(it--; it!=aColorMap.begin();it--)
             {
                tableItem->setBackground(it->second);
-                if(iWriteSpeed < it->first)
+                if(iWriteSpeed > it->first)
                     break;
             }
+        }
+
         aWriteTable->setItem(row, column, tableItem);
+    }
+    if((iMode == 3) && (aCorrectnessWriteTable))
+    {
+        QTableWidgetItem* tableItem = new QTableWidgetItem("");
+        if(iCorrectnessWrite)
+            tableItem->setBackground(QColor("#CCFFCC"));
+        else
+            tableItem->setBackground(QColor("#000000"));
+        aCorrectnessWriteTable->setItem(row, column, tableItem);
     }
     aCountReadyBlock++;
     aProgressBar->setValue(((double)aCountReadyBlock/aCountBlocks)*100);

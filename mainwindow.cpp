@@ -85,7 +85,8 @@ void MainWindow::show()
 
     updateDeviceProperty(0);
     aWindow->adjustSize();
-
+    aWindow->setWhatsThis(QString::fromLocal8Bit("Программа проверки работоспособности Flash-памяти.\n\nАвтор: Солошенко Ирина"
+                                                 "\n(при поддержке Калугина Ивана, Буловацкого Алексея)"));
 }
 
 void MainWindow::unlockWindow()
@@ -102,11 +103,12 @@ void MainWindow::closeEvent(QCloseEvent *iCloseEvent)
         iCloseEvent->accept();
 }
 
+
 std::string MainWindow::getDeviceInfoString(std::string iModel, std::string iVendor, std::string iSerial, std::string iFileSystem)
 {
     return "\nМодель:                      "+iModel
            +"\nПроизводитель:           "+iVendor
-           +"\nСерийный номер:       "+iSerial
+           //+"\nСерийный номер:       "+iSerial
             +"\nФайловая система:    "+iFileSystem;
 }
 

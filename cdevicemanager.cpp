@@ -213,7 +213,7 @@ int CDeviceManager::runTest(int iIndex, int iMode, int iMethod, int iBlockSize, 
     connect(aTest, SIGNAL(testEnded()), aTestThread, SLOT(quit()));
     connect(aTest, SIGNAL(testEnded()), aTest, SLOT(deleteLater()));
     connect(aTestThread, SIGNAL(finished()), aTestThread, SLOT(deleteLater()));
-    connect(aTest, SIGNAL(blockIsReady(int,int,int,int)), aTestWindow, SLOT(addBlock(int,int,int,int)));
+    connect(aTest, SIGNAL(blockIsReady(int,int,int,int,bool)), aTestWindow, SLOT(addBlock(int,int,int,int,bool)));
     connect(aTest, SIGNAL(testEnded()), aTestWindow, SLOT(testEnded()));
     connect(aTest, SIGNAL(error(QString)), aTestWindow, SLOT(viewError(QString)));
 

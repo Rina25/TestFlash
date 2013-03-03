@@ -28,7 +28,7 @@ signals:
 protected:
     void closeEvent(QCloseEvent *iCloseEvent);
 private slots:
-    void addBlock(int iMode, int iBlockNumber, int iReadSpeed, int iWriteSpeed);
+    void addBlock(int iMode, int iBlockNumber, int iReadSpeed, int iWriteSpeed, bool iCorrectnessWrite = true);
     void viewError(QString iMessage);
     void pauseButtonClick();
     void runButtonClick();
@@ -48,6 +48,7 @@ private:
     QProgressBar* aProgressBar;
     QTableWidget* aReadTable;
     QTableWidget* aWriteTable;
+    QTableWidget* aCorrectnessWriteTable;
     QPushButton* aPauseButton;
     QPushButton* aRunButton;
     QPushButton* aStopButton;

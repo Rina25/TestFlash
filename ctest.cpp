@@ -36,6 +36,10 @@ void CTest::run()
         linearRead(deviceHandle);
     if(aMode == 1 && aMethod == 2)
         butterflyRead(deviceHandle);
+    if(aMode == 2)
+        linearWrite(deviceHandle);
+    if(aMode == 3)
+        correctnessWrite(deviceHandle);
     CloseHandle(deviceHandle);
     emit testEnded();
 }
@@ -45,7 +49,7 @@ HANDLE CTest::openDevice()
     std::string devName = "\\\\.\\"+aDevice->getDiskName();
     HANDLE devHandle = CreateFileA(devName.c_str(),
                                   GENERIC_WRITE|GENERIC_READ,
-                                  FILE_SHARE_READ | FILE_SHARE_WRITE,
+                                  FILE_SHARE_WRITE|FILE_SHARE_READ,
                                   NULL,
                                   OPEN_EXISTING,
                                   0,
@@ -61,6 +65,19 @@ HANDLE CTest::openDevice()
                      0,
                      &returnedValue,
                      NULL);
+    if(!status)
+    {
+        CloseHandle(devHandle);
+        return 0;
+    }
+    status = DeviceIoControl(devHandle,
+                         FSCTL_LOCK_VOLUME,
+                         NULL,
+                         0,
+                         NULL,
+                         0,
+                         &returnedValue,
+                         NULL);
     if(!status)
     {
         CloseHandle(devHandle);
@@ -116,12 +133,114 @@ int CTest::readBlock(HANDLE iDeviceHandle, unsigned char *oData, long long iData
     endTime = getTime();
     oTime = oTime + (endTime - beginTime);
     oTime = ( (aFrequency/oTime)*iDataSize )/ 1024;
-    if(!status)
+    if(!status || read!=iDataSize)
     {
         oTime = -1;
         return -1;
     }
 
+    return 1;
+}
+
+int CTest::writeBlock(HANDLE iDeviceHandle, unsigned char *oData, long long iDataSize, long long &oTime, long long iOffset, DWORD iStartPosition)
+{
+    //Установить указатель
+    LARGE_INTEGER	move;
+    move.QuadPart = iOffset;
+    long long beginTime;
+    long long endTime;
+    bool status = SetFilePointerEx(iDeviceHandle,
+                                   move,
+                                   NULL,
+                                   iStartPosition);
+    if(!status)
+        return 0;
+
+    //Запись блока
+    DWORD write;
+    beginTime = getTime();
+    status = WriteFile(iDeviceHandle,
+                      oData,
+                      iDataSize,
+                      (LPDWORD)&write,
+                      NULL);
+    endTime = getTime();
+    oTime = endTime - beginTime;
+    oTime = ( (aFrequency/oTime)*iDataSize )/ 1024;
+    if(!status || write!=iDataSize)
+    {
+        oTime = -1;
+        return -1;
+    }
+    return 1;
+}
+
+int CTest::writeSectors(HANDLE iDeviceHandle, int iCountSectors, long long iOffset, unsigned char* iWrite1, unsigned char* iWrite2, DWORD iStartPosition)
+{
+    LARGE_INTEGER	move;
+    move.QuadPart = iOffset;
+    bool status = SetFilePointerEx(iDeviceHandle,
+                                   move,
+                                   NULL,
+                                   iStartPosition);
+    if(!status)
+        return 0;
+     DWORD write;
+    for(int i = 0; i<(iCountSectors-1); i+=2)
+    {
+        WriteFile(iDeviceHandle,
+                  iWrite1,
+                  aDevice->getSectorSize(),
+                  (LPDWORD)&write,
+                  NULL);
+        WriteFile(iDeviceHandle,
+                  iWrite2,
+                  aDevice->getSectorSize(),
+                  (LPDWORD)&write,
+                  NULL);
+    }
+    return 1;
+}
+
+int CTest::readSectors(HANDLE iDeviceHandle, int iCountSectors, long long iOffset, unsigned char* iWrite1, unsigned char* iWrite2, DWORD iStartPosition)
+{
+    LARGE_INTEGER	move;
+    move.QuadPart = iOffset;
+    unsigned char* block1 = new unsigned char[aDevice->getSectorSize()+1];
+    unsigned char* block2 = new unsigned char[aDevice->getSectorSize()+1];
+    bool status = SetFilePointerEx(iDeviceHandle,
+                                   move,
+                                   NULL,
+                                   iStartPosition);
+    if(!status)
+        return 0;
+     DWORD read;
+     status = true;
+    for(int i = 0; i<(iCountSectors-1); i+=2)
+    {
+        ReadFile(iDeviceHandle,
+                  block1,
+                  aDevice->getSectorSize(),
+                  (LPDWORD)&read,
+                  NULL);
+        if(!std::equal(block1, block1+aDevice->getSectorSize(), iWrite1))
+            status = false;
+        ReadFile(iDeviceHandle,
+                  block2,
+                  aDevice->getSectorSize(),
+                  (LPDWORD)&read,
+                  NULL);
+        if(!std::equal(block2, block2+aDevice->getSectorSize(), iWrite2))
+            status = false;
+        if(!status)
+        {
+            delete[] block1;
+            delete[] block2;
+            return -1;
+        }
+    }
+    delete[] block1;
+    delete[] block2;
     return 1;
 }
 
@@ -151,7 +270,7 @@ int CTest::linearRead(HANDLE iDeviceHandle)
             aStopMutex->unlock();
         else
         {
-            delete data;
+            delete[] data;
             return 0;
         }
     }
@@ -159,7 +278,7 @@ int CTest::linearRead(HANDLE iDeviceHandle)
     long long lastBlockSize = getLastBlockSize(beginLastBlock);
     readBlock(iDeviceHandle, data, lastBlockSize*aDevice->getSectorSize(), speed, 0, FILE_CURRENT);
     emit blockIsReady(1, i, speed, 0);
-    delete data;
+    delete[] data;
     return 1;
 }
 
@@ -191,10 +310,114 @@ int CTest::butterflyRead(HANDLE iDeviceHandle)
             aStopMutex->unlock();
         else
         {
-            delete data;
+            delete[] data;
             return 0;
         }
     }
-    delete data;
+    delete[] data;
+    return 1;
+}
+
+int CTest::linearWrite(HANDLE iDeviceHandle)
+{
+    //Количество байт в блоке
+    long long size = aDevice->getSectorSize()*aBlockSize;
+    unsigned char* data = new unsigned char[size+1];
+    long long speed;
+    //Количество блоков (без последнего)
+    long long count = (aEndLBA - aStartLBA) / aBlockSize;
+    long long i;
+    for (i = 0; i < count; i++)
+    {
+        aPauseMutex->lock();
+        if(readBlock(iDeviceHandle, data, size, speed, i*size, FILE_BEGIN) == 1)
+        {
+            writeBlock(iDeviceHandle, data, size, speed, i*size, FILE_BEGIN);
+            emit blockIsReady(2, i, 0, speed);
+        }
+        aPauseMutex->unlock();
+
+        if(aStopMutex->tryLock())
+            aStopMutex->unlock();
+        else
+        {
+            delete[] data;
+            return 0;
+        }
+    }
+    //Проверяется последний блок
+    long long beginLastBlock;
+    long long lastBlockSize = getLastBlockSize(beginLastBlock);
+    if(readBlock(iDeviceHandle, data, lastBlockSize*aDevice->getSectorSize(), speed, count*size, FILE_BEGIN) == 1);
+    {
+        writeBlock(iDeviceHandle, data, lastBlockSize*aDevice->getSectorSize(), speed, count*size, FILE_BEGIN);
+        emit blockIsReady(2, count, 0, speed);
+    }
+    delete[] data;
+    return 1;
+}
+
+int CTest::correctnessWrite(HANDLE iDeviceHandle)
+{
+    //Количество байт в блоке
+    long long size = aDevice->getSectorSize()*aBlockSize;
+    unsigned char* data = new unsigned char[size+1];
+    long long speedRead;
+    long long speedWrite;
+    //Количество блоков (без последнего)
+    long long count = (aEndLBA - aStartLBA) / aBlockSize;
+    long long i;
+    unsigned char* blockFF = new unsigned char[aDevice->getSectorSize()+1];
+    std::fill(blockFF, blockFF+aDevice->getSectorSize(),0xFF);
+    unsigned char* block00 = new unsigned char[aDevice->getSectorSize()+1];
+    std::fill(block00, block00+aDevice->getSectorSize(),0x00);
+    for (i = 0; i < count; i++)
+    {
+        aPauseMutex->lock();
+        aPauseMutex->unlock();
+        if(readBlock(iDeviceHandle, data, size, speedRead, i*size, FILE_BEGIN) == 1)
+        {
+            writeSectors(iDeviceHandle, aBlockSize, i*size, blockFF, block00);
+            if (readSectors(iDeviceHandle, aBlockSize, i*size, blockFF, block00)== -1)
+            {
+                writeBlock(iDeviceHandle, data, size, speedWrite, i*size, FILE_BEGIN);
+                emit blockIsReady(3, i, speedRead, speedWrite, false);
+            }
+            else
+            {
+                writeBlock(iDeviceHandle, data, size, speedWrite, i*size, FILE_BEGIN);
+                emit blockIsReady(3, i, speedRead, speedWrite, true);
+            }
+        }
+        if(aStopMutex->tryLock())
+            aStopMutex->unlock();
+        else
+        {
+            delete[] blockFF;
+            delete[] block00;
+            delete[] data;
+            return 0;
+        }
+    }
+    //Проверяется последний блок
+    long long beginLastBlock;
+    long long lastBlockSize = getLastBlockSize(beginLastBlock);
+    if(readBlock(iDeviceHandle, data, lastBlockSize*aDevice->getSectorSize(), speedRead, count*size, FILE_BEGIN) == 1);
+    {
+        writeSectors(iDeviceHandle, lastBlockSize, count*size, blockFF, block00);
+        if (readSectors(iDeviceHandle, lastBlockSize, count*size, blockFF, block00)== -1)
+        {
+            writeBlock(iDeviceHandle, data, lastBlockSize*aDevice->getSectorSize(), speedWrite, count*size, FILE_BEGIN);
+            emit blockIsReady(3, i, speedRead, speedWrite, false);
+        }
+        else
+        {
+            writeBlock(iDeviceHandle, data, lastBlockSize*aDevice->getSectorSize(), speedWrite, count*size, FILE_BEGIN);
+            emit blockIsReady(3, i, speedRead, speedWrite, true);
+        }
+    }
+    delete[] blockFF;
+    delete[] block00;
+    delete[] data;
     return 1;
 }
